@@ -1,0 +1,34 @@
+name: Weekly Fractional Job Scrape
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'  # Every Sunday at 6 AM UTC (1 AM EST)
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install python-jobspy pandas requests beautifulsoup4
+      
+      - name: Run scraper
+        run: python scrape_fractional.py
+      
+      - name: Commit and push results
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add *.csv
+          git diff --staged --quiet || git commit -m "Weekly scrape $(date +%Y-%m-%d)"
+          git push
