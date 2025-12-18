@@ -19,7 +19,7 @@ from models.database import (
     create_database, get_session, FractionalJob, CompanyEnrichment,
     ListingSnapshot, ScrapeLog, CompensationSnapshot
 )
-from scrapers.indeed_scraper import IndeedScraper, job_to_db_dict as indeed_to_db
+from scrapers.indeed_scraper import IndeedScraper, job_to_db_dict
 from scrapers.fractionaljobs_scraper import FractionalJobsScraper, job_to_db_dict as fj_to_db
 from utils.parsers import normalize_company_name, calculate_hours_bucket
 
@@ -42,7 +42,7 @@ class FractionalJobOrchestrator:
         self.session = get_session(self.engine)
         
         # Initialize scrapers
-        self.indeed_scraper = IndeedScraper(delay_range=(2, 4))
+        self.indeed_scraper = IndeedScraper(wait_time=60)
         self.fj_scraper = FractionalJobsScraper(delay_range=(1, 2))
     
     def _log_scrape_start(self, source: str) -> ScrapeLog:
@@ -142,12 +142,13 @@ class FractionalJobOrchestrator:
         seen_ids = set()
         
         try:
-            for job in self.indeed_scraper.scrape_all(max_pages_per_query):
+            for job in self.indeed_scraper.scrape_all(max_results_per_search=50):
                 stats['found'] += 1
-                seen_ids.add(job.source_id)
+                job_url = job.get('job_url', '')
+                seen_ids.add(job_url)
                 
                 try:
-                    job_dict = indeed_to_db(job)
+                    job_dict = job_to_db_dict(job)
                     is_new, job_id = self._upsert_job(job_dict)
                     
                     if is_new:
@@ -156,7 +157,7 @@ class FractionalJobOrchestrator:
                         stats['updated'] += 1
                         
                 except Exception as e:
-                    print(f"Error processing Indeed job {job.source_id}: {e}")
+                    print(f"Error processing Indeed job: {e}")
                     stats['errors'] += 1
             
             # Deactivate stale jobs
