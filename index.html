@@ -3,67 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fractional Executive Job Board</title>
+    <title>The Fractional Report - Executive Job Board</title>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.6; }
-        .header { background: linear-gradient(135deg, #2c3e50 0%, #0d9488 100%); color: white; padding: 40px 20px; text-align: center; }
-        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 1.1rem; }
+        
+        .header { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 40px 20px; text-align: center; }
+        .logo-container { background: white; border-radius: 12px; padding: 15px; display: inline-block; margin-bottom: 20px; }
+        .logo-container img { width: 120px; height: 120px; }
+        .header h1 { font-size: 2.2rem; margin-bottom: 8px; font-weight: 700; }
+        .header p { opacity: 0.9; font-size: 1.1rem; margin-bottom: 15px; }
+        .update-badge { display: inline-block; background: #0d9488; color: white; padding: 8px 20px; border-radius: 25px; font-size: 0.95rem; font-weight: 500; }
+        
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        .filters { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+        
+        .filters { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.85rem; font-weight: 600; color: #2c3e50; margin-bottom: 5px; }
         .filters input, .filters select { padding: 10px 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
-        .filters input { flex: 1; min-width: 200px; }
-        .stats { background: white; padding: 15px 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: flex; gap: 30px; flex-wrap: wrap; }
-        .stat { text-align: center; }
-        .stat-num { font-size: 1.8rem; font-weight: bold; color: #0d9488; }
-        .stat-label { font-size: 0.85rem; color: #666; }
+        .filters input:focus, .filters select:focus { outline: none; border-color: #0d9488; }
+        
+        .filter-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; cursor: pointer; }
+        .checkbox-label input { width: 18px; height: 18px; accent-color: #0d9488; }
+        
+        .results-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .results-count { font-size: 1.1rem; }
+        .results-count span { color: #0d9488; font-weight: 700; font-size: 1.3rem; }
+        .clear-btn { background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-weight: 500; }
+        .clear-btn:hover { background: #c0392b; }
+        
         .job-list { display: flex; flex-direction: column; gap: 15px; }
-        .job-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: transform 0.2s; }
-        .job-card:hover { transform: translateY(-2px); }
-        .job-title { font-size: 1.25rem; font-weight: 600; color: #2c3e50; margin-bottom: 5px; }
-        .job-company { color: #0d9488; font-weight: 500; margin-bottom: 10px; }
-        .job-meta { display: flex; gap: 20px; flex-wrap: wrap; color: #666; font-size: 0.9rem; margin-bottom: 15px; }
+        .job-card { background: white; padding: 20px 25px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-left: 4px solid #0d9488; display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+        .job-info { flex: 1; min-width: 250px; }
+        .job-title { font-size: 1.2rem; font-weight: 600; color: #2c3e50; margin-bottom: 5px; }
+        .job-company { color: #0d9488; font-weight: 500; margin-bottom: 10px; font-size: 1.05rem; }
+        .job-meta { display: flex; gap: 15px; flex-wrap: wrap; color: #666; font-size: 0.9rem; margin-bottom: 12px; }
         .job-meta span { display: flex; align-items: center; gap: 5px; }
-        .job-link { display: inline-block; background: #0d9488; color: white; padding: 8px 20px; border-radius: 5px; text-decoration: none; font-weight: 500; }
-        .job-link:hover { background: #0b7c72; }
-        .source-tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
-        .source-indeed { background: #e8f5f3; color: #0d9488; }
-        .source-fractionaljobs { background: #fef3e8; color: #d97706; }
+        .job-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tag { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+        .tag-remote { background: #e8f5f3; color: #0d9488; }
+        .tag-function { background: #fef3e8; color: #d97706; }
+        .tag-source { background: #f0f0f0; color: #666; }
+        
+        .job-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+        .salary-badge { background: #2c3e50; color: white; padding: 8px 16px; border-radius: 5px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; }
+        .job-link { display: inline-block; background: #f5a623; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: background 0.2s; }
+        .job-link:hover { background: #e09000; }
+        
         .loading { text-align: center; padding: 50px; color: #666; }
         .footer { text-align: center; padding: 40px 20px; color: #666; }
-        .footer a { color: #0d9488; }
+        .footer a { color: #0d9488; text-decoration: none; font-weight: 500; }
+        
+        @media (max-width: 600px) {
+            .job-card { flex-direction: column; }
+            .job-right { align-items: flex-start; width: 100%; }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Fractional Executive Jobs</h1>
-        <p>Updated weekly • Curated opportunities for fractional CFOs, CMOs, CROs & more</p>
+        <div class="logo-container">
+            <img src="fractional_logo.png" alt="The Fractional Report">
+        </div>
+        <h1>The Fractional Report</h1>
+        <p>Fractional Executive Opportunities</p>
+        <div class="update-badge" id="updateDate">Updated December 19, 2025</div>
     </div>
     
     <div class="container">
         <div class="filters">
-            <input type="text" id="search" placeholder="Search jobs, companies, locations...">
-            <select id="roleFilter">
-                <option value="">All Roles</option>
-                <option value="CFO">CFO / Finance</option>
-                <option value="CMO">CMO / Marketing</option>
-                <option value="CRO">CRO / Revenue</option>
-                <option value="CTO">CTO / Technology</option>
-                <option value="COO">COO / Operations</option>
-            </select>
-            <select id="sourceFilter">
-                <option value="">All Sources</option>
-                <option value="indeed">Indeed</option>
-                <option value="fractionaljobs">FractionalJobs.io</option>
-            </select>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" id="search" placeholder="Job title or company...">
+                </div>
+                <div class="filter-group">
+                    <label>Function</label>
+                    <select id="roleFilter">
+                        <option value="">All Functions</option>
+                        <option value="CFO">CFO / Finance</option>
+                        <option value="CMO">CMO / Marketing</option>
+                        <option value="CRO">CRO / Revenue</option>
+                        <option value="CTO">CTO / Technology</option>
+                        <option value="COO">COO / Operations</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Location</label>
+                    <select id="locationFilter">
+                        <option value="">All Locations</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Source</label>
+                    <select id="sourceFilter">
+                        <option value="">All Sources</option>
+                        <option value="indeed">Indeed</option>
+                        <option value="fractionaljobs">FractionalJobs.io</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="remoteOnly">
+                    Remote positions only
+                </label>
+            </div>
         </div>
         
-        <div class="stats" id="stats">
-            <div class="stat"><div class="stat-num" id="totalJobs">-</div><div class="stat-label">Total Jobs</div></div>
-            <div class="stat"><div class="stat-num" id="totalCompanies">-</div><div class="stat-label">Companies</div></div>
-            <div class="stat"><div class="stat-num" id="remoteJobs">-</div><div class="stat-label">Remote</div></div>
+        <div class="results-bar">
+            <div class="results-count">Showing <span id="jobCount">0</span> fractional executive roles</div>
+            <button class="clear-btn" onclick="clearFilters()">Clear Filters</button>
         </div>
         
         <div class="job-list" id="jobList">
@@ -72,68 +125,135 @@
     </div>
     
     <div class="footer">
-        <p>Powered by <a href="https://fractionalreport.substack.com" target="_blank">The Fractional Report</a></p>
+        <p>Powered by <a href="https://fractionalreport.substack.com" target="_blank">The Fractional Report</a> • Subscribe for weekly insights</p>
     </div>
 
     <script>
         let allJobs = [];
+        let locations = new Set();
         
         async function loadJobs() {
-            const files = await fetch('https://api.github.com/repos/romelikethecity/fractional-job-scraper/contents/')
-                .then(r => r.json());
-            
-            const csvFiles = files.filter(f => f.name.endsWith('.csv') && (f.name.includes('indeed') || f.name.includes('fractionaljobs')));
-            
-            // Get the most recent of each type
-            const indeedFile = csvFiles.filter(f => f.name.includes('indeed')).sort().pop();
-            const fjFile = csvFiles.filter(f => f.name.includes('fractionaljobs')).sort().pop();
-            
-            const loadCSV = (file) => new Promise((resolve) => {
-                if (!file) return resolve([]);
-                Papa.parse(file.download_url, {
-                    download: true,
-                    header: true,
-                    complete: (results) => resolve(results.data.filter(r => r.title))
+            try {
+                const files = await fetch('https://api.github.com/repos/romelikethecity/fractional-job-scraper/contents/')
+                    .then(r => r.json());
+                
+                const csvFiles = files.filter(f => f.name.endsWith('.csv') && (f.name.includes('indeed') || f.name.includes('fractionaljobs')));
+                
+                const indeedFile = csvFiles.filter(f => f.name.includes('indeed')).sort().pop();
+                const fjFile = csvFiles.filter(f => f.name.includes('fractionaljobs')).sort().pop();
+                
+                // Update date from filename
+                if (indeedFile) {
+                    const dateMatch = indeedFile.name.match(/(\d{4})(\d{2})(\d{2})/);
+                    if (dateMatch) {
+                        const date = new Date(dateMatch[1], dateMatch[2] - 1, dateMatch[3]);
+                        document.getElementById('updateDate').textContent = 'Updated ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                    }
+                }
+                
+                const loadCSV = (file) => new Promise((resolve) => {
+                    if (!file) return resolve([]);
+                    Papa.parse(file.download_url, {
+                        download: true,
+                        header: true,
+                        complete: (results) => resolve(results.data.filter(r => r.title))
+                    });
                 });
-            });
-            
-            const [indeedJobs, fjJobs] = await Promise.all([loadCSV(indeedFile), loadCSV(fjFile)]);
-            
-            allJobs = [...indeedJobs, ...fjJobs];
-            updateStats();
-            renderJobs(allJobs);
+                
+                const [indeedJobs, fjJobs] = await Promise.all([loadCSV(indeedFile), loadCSV(fjFile)]);
+                
+                // Mark sources
+                indeedJobs.forEach(j => j.source = 'indeed');
+                fjJobs.forEach(j => j.source = 'fractionaljobs');
+                
+                allJobs = [...indeedJobs, ...fjJobs];
+                
+                // Build location filter
+                allJobs.forEach(j => {
+                    if (j.location) locations.add(j.location);
+                });
+                const locationSelect = document.getElementById('locationFilter');
+                [...locations].sort().forEach(loc => {
+                    const opt = document.createElement('option');
+                    opt.value = loc;
+                    opt.textContent = loc;
+                    locationSelect.appendChild(opt);
+                });
+                
+                renderJobs(allJobs);
+            } catch (e) {
+                document.getElementById('jobList').innerHTML = '<div class="loading">Error loading jobs. Please refresh.</div>';
+            }
         }
         
-        function updateStats() {
-            document.getElementById('totalJobs').textContent = allJobs.length;
-            document.getElementById('totalCompanies').textContent = new Set(allJobs.map(j => j.company)).size;
-            document.getElementById('remoteJobs').textContent = allJobs.filter(j => (j.location || '').toLowerCase().includes('remote')).length;
+        function formatSalary(job) {
+            // Check for compensation field (FractionalJobs.io)
+            if (job.compensation) return job.compensation;
+            
+            // Check for min/max amount (Indeed via JobSpy)
+            if (job.min_amount || job.max_amount) {
+                const min = job.min_amount ? Math.round(job.min_amount / 1000) : null;
+                const max = job.max_amount ? Math.round(job.max_amount / 1000) : null;
+                const interval = job.interval || 'yearly';
+                
+                let suffix = '/yr';
+                if (interval === 'hourly') suffix = '/hr';
+                else if (interval === 'monthly') suffix = '/mo';
+                
+                if (min && max) return `$${min}K - $${max}K${suffix}`;
+                if (max) return `$${max}K${suffix}`;
+                if (min) return `$${min}K+${suffix}`;
+            }
+            
+            return null;
+        }
+        
+        function detectFunction(title) {
+            const t = title.toUpperCase();
+            if (t.includes('CFO') || t.includes('FINANCIAL') || t.includes('FINANCE')) return 'Finance';
+            if (t.includes('CMO') || t.includes('MARKETING')) return 'Marketing';
+            if (t.includes('CRO') || t.includes('REVENUE') || t.includes('SALES')) return 'Revenue';
+            if (t.includes('CTO') || t.includes('TECHNOLOGY') || t.includes('TECHNICAL')) return 'Technology';
+            if (t.includes('COO') || t.includes('OPERATIONS')) return 'Operations';
+            if (t.includes('CPO') || t.includes('PRODUCT')) return 'Product';
+            if (t.includes('CHRO') || t.includes('PEOPLE') || t.includes('HR')) return 'People';
+            return 'Executive';
         }
         
         function renderJobs(jobs) {
             const container = document.getElementById('jobList');
+            document.getElementById('jobCount').textContent = jobs.length;
             
             if (jobs.length === 0) {
-                container.innerHTML = '<div class="loading">No jobs found</div>';
+                container.innerHTML = '<div class="loading">No jobs match your filters</div>';
                 return;
             }
             
             container.innerHTML = jobs.map(job => {
-                const source = job.source || (job.site ? 'indeed' : 'fractionaljobs');
-                const sourceClass = source === 'indeed' ? 'source-indeed' : 'source-fractionaljobs';
-                const sourceName = source === 'indeed' ? 'Indeed' : 'FractionalJobs.io';
+                const salary = formatSalary(job);
+                const isRemote = (job.location || '').toLowerCase().includes('remote') || job.is_remote;
+                const func = detectFunction(job.title || '');
+                const sourceName = job.source === 'indeed' ? 'Indeed' : 'FractionalJobs.io';
                 
                 return `
                     <div class="job-card">
-                        <div class="job-title">${job.title || 'Untitled'}</div>
-                        <div class="job-company">${job.company || 'Company not listed'}</div>
-                        <div class="job-meta">
-                            <span>📍 ${job.location || 'Remote'}</span>
-                            ${job.compensation ? `<span>💰 ${job.compensation}</span>` : ''}
-                            ${job.hours_per_week ? `<span>⏰ ${job.hours_per_week}</span>` : ''}
-                            <span class="source-tag ${sourceClass}">${sourceName}</span>
+                        <div class="job-info">
+                            <div class="job-title">${job.title || 'Untitled'}</div>
+                            <div class="job-company">${job.company || 'Company not listed'}</div>
+                            <div class="job-meta">
+                                <span>📍 ${job.location || 'Remote'}</span>
+                                ${job.date_posted ? `<span>📅 ${new Date(job.date_posted).toLocaleDateString()}</span>` : ''}
+                            </div>
+                            <div class="job-tags">
+                                ${isRemote ? '<span class="tag tag-remote">🏠 Remote</span>' : ''}
+                                <span class="tag tag-function">${func}</span>
+                                <span class="tag tag-source">${sourceName}</span>
+                            </div>
                         </div>
-                        ${job.job_url ? `<a href="${job.job_url}" target="_blank" class="job-link">View Job →</a>` : ''}
+                        <div class="job-right">
+                            ${salary ? `<div class="salary-badge">${salary}</div>` : ''}
+                            ${job.job_url ? `<a href="${job.job_url}" target="_blank" class="job-link">Apply Now →</a>` : ''}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -142,28 +262,40 @@
         function filterJobs() {
             const search = document.getElementById('search').value.toLowerCase();
             const role = document.getElementById('roleFilter').value;
+            const location = document.getElementById('locationFilter').value;
             const source = document.getElementById('sourceFilter').value;
+            const remoteOnly = document.getElementById('remoteOnly').checked;
             
             const filtered = allJobs.filter(job => {
                 const matchSearch = !search || 
                     (job.title || '').toLowerCase().includes(search) ||
-                    (job.company || '').toLowerCase().includes(search) ||
-                    (job.location || '').toLowerCase().includes(search);
+                    (job.company || '').toLowerCase().includes(search);
                 
                 const matchRole = !role || (job.title || '').toUpperCase().includes(role);
+                const matchLocation = !location || job.location === location;
+                const matchSource = !source || job.source === source;
+                const matchRemote = !remoteOnly || (job.location || '').toLowerCase().includes('remote') || job.is_remote;
                 
-                const jobSource = job.source || (job.site ? 'indeed' : 'fractionaljobs');
-                const matchSource = !source || jobSource === source;
-                
-                return matchSearch && matchRole && matchSource;
+                return matchSearch && matchRole && matchLocation && matchSource && matchRemote;
             });
             
             renderJobs(filtered);
         }
         
+        function clearFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('roleFilter').value = '';
+            document.getElementById('locationFilter').value = '';
+            document.getElementById('sourceFilter').value = '';
+            document.getElementById('remoteOnly').checked = false;
+            renderJobs(allJobs);
+        }
+        
         document.getElementById('search').addEventListener('input', filterJobs);
         document.getElementById('roleFilter').addEventListener('change', filterJobs);
+        document.getElementById('locationFilter').addEventListener('change', filterJobs);
         document.getElementById('sourceFilter').addEventListener('change', filterJobs);
+        document.getElementById('remoteOnly').addEventListener('change', filterJobs);
         
         loadJobs();
     </script>
