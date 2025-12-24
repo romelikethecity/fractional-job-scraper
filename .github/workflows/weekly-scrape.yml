@@ -2,7 +2,7 @@ name: Weekly Fractional Job Scrape
 
 on:
   schedule:
-    - cron: '0 6 * * 0'  # Every Sunday at 6 AM UTC (1 AM EST)
+    - cron: '0 6 * * 0'  # Every Sunday at 6 AM UTC
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
@@ -20,15 +20,60 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install python-jobspy pandas requests beautifulsoup4
+          pip install python-jobspy pandas requests beautifulsoup4 matplotlib
       
       - name: Run scraper
         run: python scrape_fractional.py
+      
+      - name: Update historical data
+        run: |
+          python << 'EOF'
+          import json
+          import glob
+          from datetime import datetime
+          import pandas as pd
+          
+          # Find the latest Indeed CSV
+          csv_files = sorted(glob.glob('indeed_fractional_*.csv'))
+          if csv_files:
+              latest_csv = csv_files[-1]
+              df = pd.read_csv(latest_csv)
+              total_jobs = len(df)
+              
+              # Load existing historical data
+              with open('historical_data.json', 'r') as f:
+                  history = json.load(f)
+              
+              # Add new data point
+              today = datetime.now().strftime('%Y-%m-%d')
+              
+              # Check if today already exists
+              existing_dates = [h['date'] for h in history]
+              if today not in existing_dates:
+                  history.append({
+                      'date': today,
+                      'total': total_jobs,
+                      'source': 'scraped'
+                  })
+                  
+                  # Save updated history
+                  with open('historical_data.json', 'w') as f:
+                      json.dump(history, f, indent=2)
+                  
+                  print(f"Added new data point: {today} = {total_jobs} jobs")
+              else:
+                  print(f"Data for {today} already exists")
+          else:
+              print("No CSV files found")
+          EOF
+      
+      - name: Generate charts
+        run: python generate_charts.py
       
       - name: Commit and push results
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add *.csv
+          git add *.csv historical_data.json charts/
           git diff --staged --quiet || git commit -m "Weekly scrape $(date +%Y-%m-%d)"
           git push
