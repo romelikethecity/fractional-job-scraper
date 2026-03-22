@@ -368,5 +368,10 @@
     "date": "2026-03-15",
     "total": 52,
     "source": "scraped"
+  },
+  {
+    "date": "2026-03-22",
+    "total": 60,
+    "source": "scraped"
   }
 ]
